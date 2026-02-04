@@ -1,0 +1,12 @@
+{
+    "phone": "+34915551234",
+    "search_type": "OSINT Local Simulation",
+    "note": "⚠️ Esta es una búsqueda educativa simulada. En producción requiere APIs como Hunter.io",
+    "country": "Madrid",
+    "possible_domains": [
+        "gmail.com",
+        "outlook.com",
+        "mail.com"
+    ],
+    "method": "OSINT - Análisis de patrones públicos"
+}
