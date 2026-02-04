@@ -17,6 +17,13 @@ Herramienta OSINT profesional para análisis de números telefónicos usando est
 - 🔍 **Filtros** por país y operador
 - 🎨 Salida coloreada en consola y reportes HTML
 
+### 🚀 Mejoras Avanzadas (v2.0+)
+
+- 🗺️ **Geolocalización Interactiva** - Mapas con folium/Nominatim
+- 📧 **OSINT de Emails** - Búsqueda de dominios asociados
+- 📄 **Reportes PDF Profesionales** - Documentos formateados con reportlab
+- 🌐 **API REST + Dashboard Web** - Interfaz gráfica con Flask en `http://localhost:8000`
+
 ## 📋 Requisitos
 
 - Python 3.6+
@@ -98,6 +105,49 @@ python PhoneOs.py -h
 | Internacional | `+54 9 11 5566-7788` |
 | Nacional | `011 5566-7788` |
 
+## � Ejemplos Avanzados
+
+### Geolocalización con Mapa
+```bash
+python PhoneOs.py +5491155667788 --map
+# Genera: outputs/5491155667788/mapa.html (mapa interactivo)
+```
+
+### OSINT de Emails
+```bash
+python PhoneOs.py +5491155667788 --email
+# Genera: outputs/5491155667788/emails_osint.json
+```
+
+### Reporte PDF Profesional
+```bash
+python PhoneOs.py +5491155667788 --pdf
+# Genera: outputs/5491155667788/reporte_profesional.pdf
+```
+
+### Análisis Completo (Todo)
+```bash
+python PhoneOs.py +5491155667788 --map --email --pdf --json --csv --html
+# Genera: mapa.html, emails_osint.json, reporte_profesional.pdf, resultado.json, resultado.csv, reporte.html
+```
+
+### Dashboard Web Interactivo
+```bash
+python PhoneOs.py --web-server
+# Abre: http://localhost:8000 (API REST + Interfaz gráfica)
+```
+
+### Análisis por Lotes
+```bash
+python PhoneOs.py --batch "+5491155667788,+542945556684,+34915551234" --csv-output "resultados.csv" --pdf
+```
+
+### Filtrar por País/Operador
+```bash
+python PhoneOs.py --batch "+5491155667788,+5491234567890,+34915551234" --country "Argentina"
+python PhoneOs.py --batch "+5491155667788,+5491234567890" --carrier "Personal"
+```
+
 ## 🔍 Ejemplo de Salida
 
 ```
@@ -125,13 +175,23 @@ El Risk Score (0-100) evalúa cada número:
 - **60-100: ALTO** ❌ - Múltiples problemas o número inválido
 - **100: CRÍTICO** 🚨 - Número completamente inválido
 
-## 📁 Archivos Generados
+## 📁 Estructura de Archivos
 
-- `phone_osint.log` - Registro de todas las consultas
-- `phone_osint_cache.pkl` - Caché local en pickle
-- `phone_osint_history.json` - Historial de búsquedas
-- `phone_osint_stats.json` - Estadísticas globales
-- `phone_osint_output.*` - Exportaciones (JSON/CSV/HTML)
+```
+outputs/
+├── 5491155667788/
+│   ├── resultado.json          # Análisis completo en JSON
+│   ├── resultado.csv           # Resultado en CSV
+│   ├── reporte.html            # Tabla HTML
+│   ├── mapa.html               # Mapa interactivo (si --map)
+│   ├── emails_osint.json       # OSINT de emails (si --email)
+│   └── reporte_profesional.pdf # PDF profesional (si --pdf)
+├── 542945556684/
+│   └── ...
+└── batch_reports/
+    ├── batch_20260203_225212.csv
+    └── resultados.csv
+```
 
 ## ⚙️ Limitaciones
 
