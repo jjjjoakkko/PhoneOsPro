@@ -589,17 +589,17 @@ def generate_pdf_report(data: dict, output_path: str) -> bool:
         )
         
         # Título
-        story.append(Paragraph("📱 PHONE OSINT REPORT", title_style))
+        story.append(Paragraph("Phone OSINT REPORT", title_style))
         story.append(Spacer(1, 0.3*inch))
         
         # Información básica
-        story.append(Paragraph("Información del Número", heading_style))
+        story.append(Paragraph("Informacion del Numero", heading_style))
         
         basic_data = [
             ["Campo", "Valor"],
-            ["Número Original", data.get("input_original", "N/A")],
-            ["Número Normalizado", data.get("input_normalized", "N/A")],
-            ["¿Válido?", "✓ Sí" if data.get("valid") else "✗ No"],
+            ["Numero Original", data.get("input_original", "N/A")],
+            ["Numero Normalizado", data.get("input_normalized", "N/A")],
+            ["Valido?", "Si" if data.get("valid") else "No"],
         ]
         
         table = Table(basic_data, colWidths=[2*inch, 3.5*inch])
@@ -619,14 +619,14 @@ def generate_pdf_report(data: dict, output_path: str) -> bool:
         
         # Análisis
         if data.get("valid"):
-            story.append(Paragraph("Análisis Detallado", heading_style))
+            story.append(Paragraph("Analisis Detallado", heading_style))
             
             analysis_data = [
                 ["Atributo", "Valor", "Confianza"],
-                ["País", data.get("country", {}).get("value", "N/A"), data.get("country", {}).get("confidence", "N/A")],
-                ["Región", data.get("region", {}).get("value", "N/A"), data.get("region", {}).get("confidence", "N/A")],
+                ["Pais", data.get("country", {}).get("value", "N/A"), data.get("country", {}).get("confidence", "N/A")],
+                ["Region", data.get("region", {}).get("value", "N/A"), data.get("region", {}).get("confidence", "N/A")],
                 ["Operador", data.get("carrier", {}).get("value", "N/A"), data.get("carrier", {}).get("confidence", "N/A")],
-                ["Tipo de Línea", data.get("line_type", {}).get("value", "N/A"), "MEDIUM"],
+                ["Tipo de Linea", data.get("line_type", {}).get("value", "N/A"), "MEDIUM"],
                 ["Zona Horaria", data.get("timezones", {}).get("value", "N/A"), data.get("timezones", {}).get("confidence", "N/A")],
             ]
             
@@ -647,7 +647,7 @@ def generate_pdf_report(data: dict, output_path: str) -> bool:
             
             # Risk Score
             risk = data.get("risk_score", {})
-            story.append(Paragraph("Evaluación de Riesgo", heading_style))
+            story.append(Paragraph("Evaluacion de Riesgo", heading_style))
             
             risk_data = [
                 ["Risk Score", f"{risk.get('score', 0)}/100"],
@@ -669,7 +669,7 @@ def generate_pdf_report(data: dict, output_path: str) -> bool:
             story.append(Spacer(1, 0.3*inch))
             
             # Formatos
-            story.append(Paragraph("Formatos de Número", heading_style))
+            story.append(Paragraph("Formatos de Numero", heading_style))
             
             formats_data = [
                 ["Formato", "Valor"],
@@ -699,7 +699,7 @@ def generate_pdf_report(data: dict, output_path: str) -> bool:
         except:
             pass
         
-        story.append(Paragraph("<i>⚠️ Información basada en estándares públicos. No garantiza precisión.</i>", styles['Normal']))
+        story.append(Paragraph("<i>Informacion basada en estandares publicos. No garantiza precision.</i>", styles['Normal']))
         
         # Generar PDF
         doc.build(story)
@@ -762,7 +762,7 @@ def main():
     
     # Comandos individuales de inteligencia
     if args.reverse_lookup and args.number:
-        print(Fore.CYAN + "\n🔍 BÚSQUEDA INVERSA")
+        print(Fore.CYAN + "\n[BUSQUEDA INVERSA]")
         persona = intelligence.reverse_lookup.buscar_nombre_y_ubicacion(args.number)
         print(json.dumps(persona, indent=2, ensure_ascii=False))
         return
@@ -800,9 +800,9 @@ def main():
     
     # ========== MEJORA 15: SERVIDOR WEB + API REST ==========
     if args.web_server:
-        print(Fore.CYAN + "\n🚀 Iniciando API REST + Dashboard...")
-        print(Fore.CYAN + "📱 Abre: http://localhost:8000")
-        print(Fore.YELLOW + "⚠️ Presiona Ctrl+C para detener\n")
+        print(Fore.CYAN + "\n[*] Iniciando API REST + Dashboard...")
+        print(Fore.CYAN + "[*] Abre: http://localhost:8000")
+        print(Fore.YELLOW + "[!] Presiona Ctrl+C para detener\n")
         
         # Crear una aplicación Flask simple
         app = Flask(__name__)
@@ -816,7 +816,7 @@ def main():
         
         @app.route('/')
         def dashboard():
-            """Dashboard HTML"""
+            """Dashboard HTML con botón de Intelligence"""
             html = """
             <!DOCTYPE html>
             <html lang="es">
@@ -871,6 +871,34 @@ def main():
                         outline: none;
                         border-color: #667eea;
                     }
+                    .button-group {
+                        display: flex;
+                        gap: 10px;
+                        margin-bottom: 20px;
+                    }
+                    button {
+                        flex: 1;
+                        color: white;
+                        border: none;
+                        padding: 12px 30px;
+                        font-size: 16px;
+                        border-radius: 5px;
+                        cursor: pointer;
+                        transition: transform 0.2s;
+                        font-weight: bold;
+                    }
+                    .btn-analyze {
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    }
+                    .btn-intelligence {
+                        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+                    }
+                    button:hover {
+                        transform: translateY(-2px);
+                    }
+                    button:active {
+                        transform: translateY(0);
+                    }
                     .options {
                         display: flex;
                         gap: 10px;
@@ -881,22 +909,6 @@ def main():
                         display: flex;
                         align-items: center;
                         gap: 5px;
-                    }
-                    button {
-                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                        color: white;
-                        border: none;
-                        padding: 12px 30px;
-                        font-size: 16px;
-                        border-radius: 5px;
-                        cursor: pointer;
-                        transition: transform 0.2s;
-                    }
-                    button:hover {
-                        transform: translateY(-2px);
-                    }
-                    button:active {
-                        transform: translateY(0);
                     }
                     .result {
                         background: #f5f5f5;
@@ -947,36 +959,39 @@ def main():
             </head>
             <body>
                 <div class="container">
-                    <h1>📱 Phone OSINT Pro</h1>
-                    <div class="subtitle">Análisis Avanzado de Números de Teléfono</div>
+                    <h1>Phone OSINT Pro</h1>
+                    <div class="subtitle">Analisis Avanzado de Numeros de Telefono</div>
                     
                     <div class="input-group">
-                        <label for="phone">Número de Teléfono (E.164):</label>
+                        <label for="phone">Numero de Telefono (E.164):</label>
                         <input type="text" id="phone" placeholder="+5491155667788" value="">
                     </div>
                     
                     <div class="options">
                         <div class="checkbox">
                             <input type="checkbox" id="mapCheck" checked>
-                            <label for="mapCheck">🗺️ Mapa</label>
+                            <label for="mapCheck">Mapa</label>
                         </div>
                         <div class="checkbox">
                             <input type="checkbox" id="emailCheck" checked>
-                            <label for="emailCheck">📧 Emails OSINT</label>
+                            <label for="emailCheck">Emails OSINT</label>
                         </div>
                         <div class="checkbox">
                             <input type="checkbox" id="pdfCheck">
-                            <label for="pdfCheck">📄 PDF</label>
+                            <label for="pdfCheck">PDF</label>
                         </div>
                     </div>
                     
-                    <button onclick="analyzePhone()">🔍 Analizar</button>
+                    <div class="button-group">
+                        <button class="btn-analyze" onclick="analyzePhone()">Analizar</button>
+                        <button class="btn-intelligence" onclick="intelligenceAnalysis()">360 Intelligence</button>
+                    </div>
                     
                     <div id="result"></div>
                     
                     <div class="info">
-                        💡 <strong>Consejo:</strong> Ingresa números en formato internacional (+país-área-número). 
-                        Ej: +1-202-555-0173 (USA), +34-91-555-1234 (España)
+                        Consejo: Ingresa numeros en formato internacional (+pais-area-numero). 
+                        Ej: +1-202-555-0173 (USA), +34-91-555-1234 (Espana)
                     </div>
                 </div>
                 
@@ -984,7 +999,7 @@ def main():
                     function analyzePhone() {
                         const phone = document.getElementById('phone').value.trim();
                         if (!phone) {
-                            showResult('Por favor ingresa un número', true);
+                            showResult('Por favor ingresa un numero', true);
                             return;
                         }
                         
@@ -1000,6 +1015,32 @@ def main():
                                 email: document.getElementById('emailCheck').checked,
                                 pdf: document.getElementById('pdfCheck').checked
                             })
+                        })
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.error) {
+                                showResult(data.error, true);
+                            } else {
+                                showResult(JSON.stringify(data, null, 2), false);
+                            }
+                        })
+                        .catch(err => showResult('Error: ' + err, true));
+                    }
+                    
+                    function intelligenceAnalysis() {
+                        const phone = document.getElementById('phone').value.trim();
+                        if (!phone) {
+                            showResult('Por favor ingresa un numero', true);
+                            return;
+                        }
+                        
+                        const resultDiv = document.getElementById('result');
+                        resultDiv.innerHTML = '<div class="loading"><div class="spinner"></div><p>Realizando investigacion 360...</p></div>';
+                        
+                        fetch('/api/intelligence', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({ phone: phone })
                         })
                         .then(r => r.json())
                         .then(data => {
@@ -1056,6 +1097,24 @@ def main():
                 'countries': analytics.stats.get('countries', {}),
                 'carriers': analytics.stats.get('carriers', {})
             }
+        
+        @app.route('/api/intelligence', methods=['POST'])
+        def api_intelligence():
+            """API para investigación OSINT completa"""
+            if not INTELLIGENCE_AVAILABLE:
+                return {'error': 'Modulo Intelligence no disponible'}, 400
+            
+            data = request.json
+            phone = data.get('phone', '')
+            
+            if not phone:
+                return {'error': 'Telefono no proporcionado'}, 400
+            
+            try:
+                resultado = intelligence.investigar_completo(phone)
+                return resultado
+            except Exception as e:
+                return {'error': str(e)}, 400
         
         try:
             app.run(host='localhost', port=8000, debug=False)
@@ -1128,7 +1187,7 @@ def main():
                 region = data.get("region", {}).get("value", "")
                 if country:
                     map_path = os.path.join(output_dir, "mapa.html")
-                    print(Fore.CYAN + "\n🗺️ Generando mapa de geolocalización...")
+                    print(Fore.CYAN + "\n[GENERANDO MAPA]")
                     if generate_geolocation_map(country, region, map_path):
                         print(Fore.GREEN + f"✔ Mapa generado: {map_path}")
                     else:
@@ -1139,7 +1198,7 @@ def main():
             # ========== MEJORA 13: BÚSQUEDA DE EMAILS ==========
             if args.email:
                 country = data.get("country", {}).get("value", "")
-                print(Fore.CYAN + "\n📧 Buscando emails asociados (OSINT)...")
+                print(Fore.CYAN + "\n[BUSCANDO EMAILS ASOCIADOS]")
                 email_results = search_emails_osint(numbers[0], country)
                 print(Fore.MAGENTA + f"  Dominios posibles: {', '.join(email_results.get('possible_domains', []))}")
                 
@@ -1151,7 +1210,7 @@ def main():
             
             # ========== MEJORA 14: GENERACIÓN DE PDF ==========
             if args.pdf:
-                print(Fore.CYAN + "\n📄 Generando reporte PDF...")
+                print(Fore.CYAN + "\n[GENERANDO PDF]")
                 pdf_path = os.path.join(output_dir, "reporte_profesional.pdf")
                 if generate_pdf_report(data, pdf_path):
                     print(Fore.GREEN + f"✔ Reporte PDF generado: {pdf_path}")
@@ -1160,7 +1219,7 @@ def main():
     else:
         # Análisis por lotes
         banner()
-        print(Fore.CYAN + f"\n📊 Analizando {len(numbers)} números...\n")
+        print(Fore.CYAN + f"\n[ANALIZANDO {len(numbers)} NUMEROS]\n")
         results = batch_analyze(numbers)
 
         filtered_results = results
@@ -1173,280 +1232,14 @@ def main():
         invalid_count = sum(1 for r in filtered_results if not r.get("valid") and "error" not in r)
         error_count = sum(1 for r in filtered_results if "error" in r)
 
-        print(Fore.GREEN + f"✔ Válidos: {valid_count}")
-        print(Fore.YELLOW + f"⚠ Inválidos: {invalid_count}")
+        print(Fore.GREEN + f"✔ Validos: {valid_count}")
+        print(Fore.YELLOW + f"⚠ Invalidos: {invalid_count}")
         print(Fore.RED + f"❌ Errores: {error_count}")
 
         if args.csv_output:
             export_batch_csv(filtered_results, args.csv_output)
         elif args.csv:
             export_batch_csv(filtered_results)
-    
-    # ========== MEJORA 15: SERVIDOR WEB + API REST ==========
-    if args.web_server:
-        print(Fore.CYAN + "\n🚀 Iniciando API REST + Dashboard...")
-        print(Fore.CYAN + "📱 Abre: http://localhost:8000")
-        print(Fore.YELLOW + "⚠️ Presiona Ctrl+C para detener\n")
-        
-        # Crear una aplicación Flask simple
-        app = Flask(__name__)
-        
-        # Configurar CORS
-        try:
-            from flask_cors import CORS
-            CORS(app)
-        except:
-            pass
-        
-        @app.route('/')
-        def dashboard():
-            """Dashboard HTML"""
-            html = """
-            <!DOCTYPE html>
-            <html lang="es">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>Phone OSINT Pro - Dashboard</title>
-                <style>
-                    * { margin: 0; padding: 0; box-sizing: border-box; }
-                    body { 
-                        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                        min-height: 100vh;
-                        padding: 20px;
-                    }
-                    .container {
-                        max-width: 900px;
-                        margin: 0 auto;
-                        background: white;
-                        border-radius: 10px;
-                        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-                        padding: 40px;
-                    }
-                    h1 {
-                        color: #667eea;
-                        margin-bottom: 10px;
-                        text-align: center;
-                    }
-                    .subtitle {
-                        text-align: center;
-                        color: #666;
-                        margin-bottom: 30px;
-                    }
-                    .input-group {
-                        margin-bottom: 20px;
-                    }
-                    label {
-                        display: block;
-                        margin-bottom: 8px;
-                        font-weight: bold;
-                        color: #333;
-                    }
-                    input[type="text"] {
-                        width: 100%;
-                        padding: 12px;
-                        border: 2px solid #ddd;
-                        border-radius: 5px;
-                        font-size: 16px;
-                        transition: border-color 0.3s;
-                    }
-                    input[type="text"]:focus {
-                        outline: none;
-                        border-color: #667eea;
-                    }
-                    .options {
-                        display: flex;
-                        gap: 10px;
-                        margin-bottom: 20px;
-                        flex-wrap: wrap;
-                    }
-                    .checkbox {
-                        display: flex;
-                        align-items: center;
-                        gap: 5px;
-                    }
-                    button {
-                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                        color: white;
-                        border: none;
-                        padding: 12px 30px;
-                        font-size: 16px;
-                        border-radius: 5px;
-                        cursor: pointer;
-                        transition: transform 0.2s;
-                    }
-                    button:hover {
-                        transform: translateY(-2px);
-                    }
-                    button:active {
-                        transform: translateY(0);
-                    }
-                    .result {
-                        background: #f5f5f5;
-                        border-left: 4px solid #667eea;
-                        padding: 20px;
-                        border-radius: 5px;
-                        margin-top: 30px;
-                        max-height: 500px;
-                        overflow-y: auto;
-                    }
-                    .result pre {
-                        font-size: 13px;
-                        color: #333;
-                        white-space: pre-wrap;
-                        word-break: break-word;
-                    }
-                    .error {
-                        background: #fee;
-                        border-left-color: #f00;
-                        color: #c33;
-                    }
-                    .loading {
-                        text-align: center;
-                        color: #667eea;
-                    }
-                    .spinner {
-                        border: 4px solid #ddd;
-                        border-top: 4px solid #667eea;
-                        border-radius: 50%;
-                        width: 40px;
-                        height: 40px;
-                        animation: spin 1s linear infinite;
-                        margin: 20px auto;
-                    }
-                    @keyframes spin {
-                        0% { transform: rotate(0deg); }
-                        100% { transform: rotate(360deg); }
-                    }
-                    .info {
-                        background: #e8f4f8;
-                        border-left-color: #667eea;
-                        padding: 15px;
-                        border-radius: 5px;
-                        margin-top: 20px;
-                        font-size: 14px;
-                    }
-                </style>
-            </head>
-            <body>
-                <div class="container">
-                    <h1>📱 Phone OSINT Pro</h1>
-                    <div class="subtitle">Análisis Avanzado de Números de Teléfono</div>
-                    
-                    <div class="input-group">
-                        <label for="phone">Número de Teléfono (E.164):</label>
-                        <input type="text" id="phone" placeholder="+5491155667788" value="">
-                    </div>
-                    
-                    <div class="options">
-                        <div class="checkbox">
-                            <input type="checkbox" id="mapCheck" checked>
-                            <label for="mapCheck">🗺️ Mapa</label>
-                        </div>
-                        <div class="checkbox">
-                            <input type="checkbox" id="emailCheck" checked>
-                            <label for="emailCheck">📧 Emails OSINT</label>
-                        </div>
-                        <div class="checkbox">
-                            <input type="checkbox" id="pdfCheck">
-                            <label for="pdfCheck">📄 PDF</label>
-                        </div>
-                    </div>
-                    
-                    <button onclick="analyzePhone()">🔍 Analizar</button>
-                    
-                    <div id="result"></div>
-                    
-                    <div class="info">
-                        💡 <strong>Consejo:</strong> Ingresa números en formato internacional (+país-área-número). 
-                        Ej: +1-202-555-0173 (USA), +34-91-555-1234 (España)
-                    </div>
-                </div>
-                
-                <script>
-                    function analyzePhone() {
-                        const phone = document.getElementById('phone').value.trim();
-                        if (!phone) {
-                            showResult('Por favor ingresa un número', true);
-                            return;
-                        }
-                        
-                        const resultDiv = document.getElementById('result');
-                        resultDiv.innerHTML = '<div class="loading"><div class="spinner"></div><p>Analizando...</p></div>';
-                        
-                        fetch('/api/analyze', {
-                            method: 'POST',
-                            headers: {'Content-Type': 'application/json'},
-                            body: JSON.stringify({
-                                phone: phone,
-                                map: document.getElementById('mapCheck').checked,
-                                email: document.getElementById('emailCheck').checked,
-                                pdf: document.getElementById('pdfCheck').checked
-                            })
-                        })
-                        .then(r => r.json())
-                        .then(data => {
-                            if (data.error) {
-                                showResult(data.error, true);
-                            } else {
-                                showResult(JSON.stringify(data, null, 2), false);
-                            }
-                        })
-                        .catch(err => showResult('Error: ' + err, true));
-                    }
-                    
-                    function showResult(text, isError) {
-                        const resultDiv = document.getElementById('result');
-                        resultDiv.className = 'result' + (isError ? ' error' : '');
-                        resultDiv.innerHTML = '<pre>' + text + '</pre>';
-                    }
-                    
-                    document.getElementById('phone').addEventListener('keypress', (e) => {
-                        if (e.key === 'Enter') analyzePhone();
-                    });
-                </script>
-            </body>
-            </html>
-            """
-            return html
-        
-        @app.route('/api/analyze', methods=['POST'])
-        def api_analyze():
-            """API REST para análisis"""
-            data = request.json
-            phone = data.get('phone', '')
-            
-            if not phone:
-                return {'error': 'Teléfono no proporcionado'}, 400
-            
-            try:
-                result = analyze_number(phone)
-                analytics.add_query(phone, result)
-                
-                # Agregar datos adicionales
-                if data.get('email') and result.get('valid'):
-                    result['emails_osint'] = search_emails_osint(phone, result.get('country', {}).get('value', ''))
-                
-                return result
-            except Exception as e:
-                return {'error': str(e)}, 400
-        
-        @app.route('/api/stats', methods=['GET'])
-        def api_stats():
-            """API para estadísticas"""
-            return {
-                'total_queries': len(analytics.history),
-                'countries': analytics.stats.get('countries', {}),
-                'carriers': analytics.stats.get('carriers', {})
-            }
-        
-        try:
-            app.run(host='localhost', port=8000, debug=False)
-        except KeyboardInterrupt:
-            print(Fore.CYAN + "\n✔ Servidor detenido")
-        except Exception as e:
-            print(Fore.RED + f"❌ Error al iniciar servidor: {e}")
 
 if __name__ == "__main__":
     main()
