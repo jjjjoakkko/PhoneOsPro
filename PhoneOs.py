@@ -13,6 +13,7 @@ import sys
 import os
 import pickle
 from collections import defaultdict
+from pathlib import Path
 
 try:
     import phonenumbers
@@ -34,6 +35,16 @@ LOG_FILE = "phone_osint.log"
 CACHE_FILE = "phone_osint_cache.pkl"
 HISTORY_FILE = "phone_osint_history.json"
 STATS_FILE = "phone_osint_stats.json"
+OUTPUTS_DIR = "outputs"  # Directorio base para outputs organizados
+
+# ========== MEJORA 11: ORGANIZACIÓN DE OUTPUTS ==========
+def get_number_output_dir(number: str) -> str:
+    """Crea y retorna la carpeta para output de un número."""
+    # Sanitizar número para nombre de carpeta
+    safe_number = number.replace("+", "").replace(" ", "_")
+    output_path = os.path.join(OUTPUTS_DIR, safe_number)
+    Path(output_path).mkdir(parents=True, exist_ok=True)
+    return output_path
 
 # ========== MEJORA 1: CACHÉ LOCAL ==========
 class PhoneCache:
@@ -343,8 +354,18 @@ def load_from_csv(filepath: str) -> list:
         return []
 
 # ========== MEJORA 7: EXPORTAR CSV ==========
-def export_batch_csv(results: list, filename="phone_osint_batch.csv"):
-    """Exporta resultados de lote a CSV."""
+def export_batch_csv(results: list, filename: str = None):
+    """Exporta resultados de lote a CSV en carpeta organizada."""
+    if filename is None:
+        # Crear carpeta para lotes si no existe
+        batch_dir = os.path.join(OUTPUTS_DIR, "batch_reports")
+        Path(batch_dir).mkdir(parents=True, exist_ok=True)
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = os.path.join(batch_dir, f"batch_{timestamp}.csv")
+    
+    # Asegurar que el directorio existe
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
+    
     with open(filename, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=["original", "normalized", "valid", "country", "region", "carrier", "risk_level"])
         writer.writeheader()
@@ -362,8 +383,15 @@ def export_batch_csv(results: list, filename="phone_osint_batch.csv"):
     print(Fore.GREEN + f"✔ Exportado a {filename}")
 
 # ========== MEJORA 4: EXPORTAR HTML ==========
-def export_html(data: dict, filename="phone_osint_output.html"):
-    """Exporta resultado a HTML."""
+def export_html(data: dict, filename: str = None):
+    """Exporta resultado a HTML en carpeta organizada."""
+    # Si no se especifica filename, crear uno en carpeta del número
+    if filename is None and "input_normalized" in data:
+        output_dir = get_number_output_dir(data["input_normalized"])
+        filename = os.path.join(output_dir, "reporte.html")
+    elif filename is None:
+        filename = "phone_osint_output.html"
+    
     if "error" in data:
         html = f"""<html><body><h1>Error</h1><p>{data['error']}</p></body></html>"""
     else:
@@ -389,10 +417,10 @@ body {{ font-family: Arial; margin: 20px; background: #f5f5f5; }}
 </div>
 <div class="section">
   <h3>Analysis</h3>
-  <p><strong>Country:</strong> {data['country']['value']} ({data['country']['confidence']})</p>
-  <p><strong>Carrier:</strong> {data['carrier']['value']} ({data['carrier']['confidence']})</p>
-  <p><strong>Line Type:</strong> {data['line_type']['value']}</p>
-  <p><strong>Timezones:</strong> {data['timezones']['value']}</p>
+  <p><strong>Country:</strong> {data.get('country', {}).get('value', 'N/A')} ({data.get('country', {}).get('confidence', 'N/A')})</p>
+  <p><strong>Carrier:</strong> {data.get('carrier', {}).get('value', 'N/A')} ({data.get('carrier', {}).get('confidence', 'N/A')})</p>
+  <p><strong>Line Type:</strong> {data.get('line_type', {}).get('value', 'N/A')}</p>
+  <p><strong>Timezones:</strong> {data.get('timezones', {}).get('value', 'N/A')}</p>
 </div>
 <div class="section">
   <h3>Risk Assessment</h3>
@@ -403,11 +431,15 @@ body {{ font-family: Arial; margin: 20px; background: #f5f5f5; }}
 </div>
 <div class="section">
   <h3>Formats</h3>
-  <p><strong>E.164:</strong> <span class="value">{data['formats']['e164']}</span></p>
-  <p><strong>International:</strong> <span class="value">{data['formats']['international']}</span></p>
-  <p><strong>National:</strong> <span class="value">{data['formats']['national']}</span></p>
+  <p><strong>E.164:</strong> <span class="value">{data.get('formats', {}).get('e164', 'N/A')}</span></p>
+  <p><strong>International:</strong> <span class="value">{data.get('formats', {}).get('international', 'N/A')}</span></p>
+  <p><strong>National:</strong> <span class="value">{data.get('formats', {}).get('national', 'N/A')}</span></p>
 </div>
 </div></body></html>"""
+    
+    # Crear carpeta si es necesario
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
+    
     with open(filename, "w", encoding="utf-8") as f:
         f.write(html)
     print(Fore.GREEN + f"✔ Exportado a {filename}")
@@ -476,20 +508,26 @@ def main():
         analytics.add_query(numbers[0], data)
         log_event(f"Query: {numbers[0]} | Valid: {data.get('valid')}")
 
-        if args.json:
-            with open("phone_osint_output.json", "w", encoding="utf-8") as f:
-                json.dump(data, f, indent=4, ensure_ascii=False)
-            print(Fore.GREEN + "✔ Exportado a phone_osint_output.json")
+        if not "error" in data and data.get("valid"):
+            # Crear carpeta para este número
+            output_dir = get_number_output_dir(data.get("input_normalized", numbers[0]))
+            
+            if args.json:
+                json_path = os.path.join(output_dir, "resultado.json")
+                with open(json_path, "w", encoding="utf-8") as f:
+                    json.dump(data, f, indent=4, ensure_ascii=False)
+                print(Fore.GREEN + f"✔ Exportado a {json_path}")
 
-        if args.csv:
-            with open("phone_osint_output.csv", "w", newline="", encoding="utf-8") as f:
-                writer = csv.writer(f)
-                for k, v in data.items():
-                    writer.writerow([k, v])
-            print(Fore.GREEN + "✔ Exportado a phone_osint_output.csv")
+            if args.csv:
+                csv_path = os.path.join(output_dir, "resultado.csv")
+                with open(csv_path, "w", newline="", encoding="utf-8") as f:
+                    writer = csv.writer(f)
+                    for k, v in data.items():
+                        writer.writerow([k, v])
+                print(Fore.GREEN + f"✔ Exportado a {csv_path}")
 
-        if args.html:
-            export_html(data)
+            if args.html:
+                export_html(data)
     else:
         # Análisis por lotes
         banner()
