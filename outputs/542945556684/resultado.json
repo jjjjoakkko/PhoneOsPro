@@ -1,0 +1,37 @@
+{
+    "input_original": "+542945556684",
+    "input_normalized": "+542945556684",
+    "valid": true,
+    "country": {
+        "value": "Esquel, Chubut",
+        "confidence": "HIGH"
+    },
+    "region": {
+        "value": "Esquel, Chubut",
+        "confidence": "MEDIUM"
+    },
+    "carrier": {
+        "value": "NOT DETERMINABLE",
+        "confidence": "NONE"
+    },
+    "line_type": {
+        "value": "FIXED_LINE",
+        "confidence": "MEDIUM"
+    },
+    "timezones": {
+        "value": "America/Buenos_Aires",
+        "confidence": "HIGH"
+    },
+    "formats": {
+        "e164": "+542945556684",
+        "international": "+54 2945 55-6684",
+        "national": "02945 55-6684"
+    },
+    "risk_score": {
+        "score": 10,
+        "level": "BAJO",
+        "reasons": [
+            "Operador no determinable"
+        ]
+    }
+}

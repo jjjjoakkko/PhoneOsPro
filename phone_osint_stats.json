@@ -1,17 +1,17 @@
 {
-  "total_queries": 5,
-  "valid_numbers": 5,
-  "invalid_numbers": 0,
+  "total_queries": 7,
+  "valid_numbers": 6,
+  "invalid_numbers": 1,
   "countries": {
-    "Esquel, Chubut": 3,
-    "Buenos Aires": 2
+    "Esquel, Chubut": 2,
+    "Buenos Aires": 4
   },
   "carriers": {
-    "NOT DETERMINABLE": 3,
-    "Personal": 2
+    "NOT DETERMINABLE": 2,
+    "Personal": 4
   },
   "line_types": {
-    "FIXED_LINE": 3,
-    "MOBILE": 2
+    "FIXED_LINE": 2,
+    "MOBILE": 4
   }
 }

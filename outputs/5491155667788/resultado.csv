@@ -1,0 +1,10 @@
+input_original,+5491155667788
+input_normalized,+5491155667788
+valid,True
+country,"{'value': 'Buenos Aires', 'confidence': 'HIGH'}"
+region,"{'value': 'Buenos Aires', 'confidence': 'MEDIUM'}"
+carrier,"{'value': 'Personal', 'confidence': 'MEDIUM'}"
+line_type,"{'value': 'MOBILE', 'confidence': 'MEDIUM'}"
+timezones,"{'value': 'America/Buenos_Aires', 'confidence': 'HIGH'}"
+formats,"{'e164': '+5491155667788', 'international': '+54 9 11 5566-7788', 'national': '011 15-5566-7788'}"
+risk_score,"{'score': 0, 'level': 'BAJO', 'reasons': ['Sin alertas']}"

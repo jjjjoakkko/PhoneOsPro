@@ -28,6 +28,21 @@ except ModuleNotFoundError:
     print("  .\\virtual\\Scripts\\python.exe PhoneOs.py -h")
     sys.exit(1)
 
+# Importar módulos avanzados (opcional)
+try:
+    import folium
+    from geopy.geocoders import Nominatim
+    from reportlab.lib.pagesizes import letter
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+    from reportlab.lib import colors
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.units import inch
+    from datetime import datetime as dt
+    from flask import Flask, request, jsonify
+    ADVANCED_FEATURES = True
+except ImportError:
+    ADVANCED_FEATURES = False
+
 from colorama import Fore, Style, init
 
 init(autoreset=True)
@@ -362,6 +377,12 @@ def export_batch_csv(results: list, filename: str = None):
         Path(batch_dir).mkdir(parents=True, exist_ok=True)
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = os.path.join(batch_dir, f"batch_{timestamp}.csv")
+    else:
+        # Si no tiene directorio, ponerlo en batch_reports
+        if os.path.dirname(filename) == "":
+            batch_dir = os.path.join(OUTPUTS_DIR, "batch_reports")
+            Path(batch_dir).mkdir(parents=True, exist_ok=True)
+            filename = os.path.join(batch_dir, filename)
     
     # Asegurar que el directorio existe
     os.makedirs(os.path.dirname(filename), exist_ok=True)
@@ -454,6 +475,232 @@ def filter_results(results: list, country: str = None, carrier_name: str = None)
         filtered = [r for r in filtered if carrier_name.lower() in r.get("carrier", {}).get("value", "").lower()]
     return filtered
 
+# ========== MEJORA 12: GEOLOCALIZACIÓN CON MAPAS ==========
+def generate_geolocation_map(country: str, region: str, output_path: str) -> bool:
+    """Genera mapa interactivo con folium."""
+    if not ADVANCED_FEATURES:
+        print(Fore.YELLOW + "⚠️ Características avanzadas no disponibles. Instala: folium geopy")
+        return False
+    
+    try:
+        geolocator = Nominatim(user_agent="phoneoispro")
+        location_str = f"{region}, {country}" if region else country
+        location = geolocator.geocode(location_str, timeout=10)
+        
+        if not location:
+            print(Fore.YELLOW + "⚠️ No se pudo geolocalizar la ubicación")
+            return False
+        
+        # Crear mapa
+        m = folium.Map(
+            location=[location.latitude, location.longitude],
+            zoom_start=8,
+            tiles="OpenStreetMap"
+        )
+        
+        # Añadir marcador
+        folium.Marker(
+            location=[location.latitude, location.longitude],
+            popup=f"{region}, {country}",
+            tooltip=location.address,
+            icon=folium.Icon(color='blue', icon='info-sign')
+        ).add_to(m)
+        
+        # Círculo de cobertura aproximada (50km)
+        folium.Circle(
+            location=[location.latitude, location.longitude],
+            radius=50000,
+            popup="Área aproximada (50km)",
+            color="blue",
+            fill=True,
+            fillOpacity=0.1
+        ).add_to(m)
+        
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        m.save(output_path)
+        return True
+    except Exception as e:
+        print(Fore.YELLOW + f"⚠️ Error al generar mapa: {e}")
+        return False
+
+# ========== MEJORA 13: BÚSQUEDA INVERSA DE EMAILS ==========
+def search_emails_osint(phone: str, country: str = None) -> dict:
+    """Búsqueda OSINT de emails asociados (simulada)."""
+    results = {
+        "phone": phone,
+        "search_type": "OSINT Local Simulation",
+        "note": "⚠️ Esta es una búsqueda educativa simulada. En producción requiere APIs como Hunter.io",
+        "country": country,
+        "possible_domains": []
+    }
+    
+    # Dominios comunes por país (referencia educativa)
+    country_domains = {
+        "Argentina": ["ar.com", "com.ar", "mail.ar"],
+        "México": ["com.mx", "mx.com"],
+        "Spain": ["es.com", "com.es", ".es"],
+        "United States": ["gmail.com", "outlook.com", ".us"],
+    }
+    
+    domains = country_domains.get(country, ["gmail.com", "outlook.com", "mail.com"])
+    results["possible_domains"] = domains
+    results["method"] = "OSINT - Análisis de patrones públicos"
+    
+    return results
+
+# ========== MEJORA 14: GENERACIÓN DE REPORTES PDF ==========
+def generate_pdf_report(data: dict, output_path: str) -> bool:
+    """Genera reporte PDF profesional."""
+    if not ADVANCED_FEATURES:
+        print(Fore.YELLOW + "⚠️ PDF no disponible. Instala: reportlab")
+        return False
+    
+    try:
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        
+        doc = SimpleDocTemplate(output_path, pagesize=letter)
+        story = []
+        styles = getSampleStyleSheet()
+        
+        # Estilos personalizados
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=24,
+            textColor=colors.HexColor('#007bff'),
+            spaceAfter=30,
+            alignment=1
+        )
+        
+        heading_style = ParagraphStyle(
+            'CustomHeading',
+            parent=styles['Heading2'],
+            fontSize=14,
+            textColor=colors.HexColor('#007bff'),
+            spaceBefore=12,
+            spaceAfter=6
+        )
+        
+        # Título
+        story.append(Paragraph("📱 PHONE OSINT REPORT", title_style))
+        story.append(Spacer(1, 0.3*inch))
+        
+        # Información básica
+        story.append(Paragraph("Información del Número", heading_style))
+        
+        basic_data = [
+            ["Campo", "Valor"],
+            ["Número Original", data.get("input_original", "N/A")],
+            ["Número Normalizado", data.get("input_normalized", "N/A")],
+            ["¿Válido?", "✓ Sí" if data.get("valid") else "✗ No"],
+        ]
+        
+        table = Table(basic_data, colWidths=[2*inch, 3.5*inch])
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#007bff')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 12),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f0f0f0')])
+        ]))
+        
+        story.append(table)
+        story.append(Spacer(1, 0.3*inch))
+        
+        # Análisis
+        if data.get("valid"):
+            story.append(Paragraph("Análisis Detallado", heading_style))
+            
+            analysis_data = [
+                ["Atributo", "Valor", "Confianza"],
+                ["País", data.get("country", {}).get("value", "N/A"), data.get("country", {}).get("confidence", "N/A")],
+                ["Región", data.get("region", {}).get("value", "N/A"), data.get("region", {}).get("confidence", "N/A")],
+                ["Operador", data.get("carrier", {}).get("value", "N/A"), data.get("carrier", {}).get("confidence", "N/A")],
+                ["Tipo de Línea", data.get("line_type", {}).get("value", "N/A"), "MEDIUM"],
+                ["Zona Horaria", data.get("timezones", {}).get("value", "N/A"), data.get("timezones", {}).get("confidence", "N/A")],
+            ]
+            
+            analysis_table = Table(analysis_data, colWidths=[1.8*inch, 2*inch, 1.7*inch])
+            analysis_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#007bff')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 10),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f0f0f0')])
+            ]))
+            
+            story.append(analysis_table)
+            story.append(Spacer(1, 0.3*inch))
+            
+            # Risk Score
+            risk = data.get("risk_score", {})
+            story.append(Paragraph("Evaluación de Riesgo", heading_style))
+            
+            risk_data = [
+                ["Risk Score", f"{risk.get('score', 0)}/100"],
+                ["Nivel de Riesgo", risk.get('level', 'N/A')],
+                ["Razones", ", ".join(risk.get("reasons", []))[:100]],
+            ]
+            
+            risk_table = Table(risk_data, colWidths=[2*inch, 3.5*inch])
+            risk_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#007bff')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f0f0f0')])
+            ]))
+            
+            story.append(risk_table)
+            story.append(Spacer(1, 0.3*inch))
+            
+            # Formatos
+            story.append(Paragraph("Formatos de Número", heading_style))
+            
+            formats_data = [
+                ["Formato", "Valor"],
+                ["E.164", data.get("formats", {}).get("e164", "N/A")],
+                ["Internacional", data.get("formats", {}).get("international", "N/A")],
+                ["Nacional", data.get("formats", {}).get("national", "N/A")],
+            ]
+            
+            formats_table = Table(formats_data, colWidths=[2*inch, 3.5*inch])
+            formats_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#007bff')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f0f0f0')])
+            ]))
+            
+            story.append(formats_table)
+        
+        # Pie de página
+        story.append(Spacer(1, 0.5*inch))
+        try:
+            timestamp = dt.now().strftime('%Y-%m-%d %H:%M:%S')
+            footer_text = f"<i>Reporte generado: {timestamp}</i>"
+            story.append(Paragraph(footer_text, styles['Normal']))
+        except:
+            pass
+        
+        story.append(Paragraph("<i>⚠️ Información basada en estándares públicos. No garantiza precisión.</i>", styles['Normal']))
+        
+        # Generar PDF
+        doc.build(story)
+        return True
+    except Exception as e:
+        print(Fore.YELLOW + f"⚠️ Error al generar PDF: {e}")
+        return False
+
 def main():
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter, description="Phone OSINT Tool Pro")
 
@@ -469,8 +716,281 @@ def main():
     parser.add_argument("--stats", action="store_true", help="Mostrar estadísticas")
     parser.add_argument("--history", action="store_true", help="Mostrar historial")
     parser.add_argument("--clear-cache", action="store_true", help="Limpiar caché")
+    
+    # ========== MEJORAS AVANZADAS ==========
+    parser.add_argument("--map", action="store_true", help="Generar mapa de geolocalización")
+    parser.add_argument("--email", action="store_true", help="Buscar emails asociados (OSINT)")
+    parser.add_argument("--pdf", action="store_true", help="Generar reporte PDF profesional")
+    parser.add_argument("--web-server", action="store_true", help="Iniciar API REST + Dashboard")
 
     args = parser.parse_args()
+    
+    # ========== MEJORA 15: SERVIDOR WEB + API REST (PRIMERO) ==========
+    if args.web_server:
+        print(Fore.CYAN + "\n🚀 Iniciando API REST + Dashboard...")
+        print(Fore.CYAN + "📱 Abre: http://localhost:8000")
+        print(Fore.YELLOW + "⚠️ Presiona Ctrl+C para detener\n")
+        
+        # Crear una aplicación Flask simple
+        app = Flask(__name__)
+        
+        # Configurar CORS
+        try:
+            from flask_cors import CORS
+            CORS(app)
+        except:
+            pass
+        
+        @app.route('/')
+        def dashboard():
+            """Dashboard HTML"""
+            html = """
+            <!DOCTYPE html>
+            <html lang="es">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Phone OSINT Pro - Dashboard</title>
+                <style>
+                    * { margin: 0; padding: 0; box-sizing: border-box; }
+                    body { 
+                        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        min-height: 100vh;
+                        padding: 20px;
+                    }
+                    .container {
+                        max-width: 900px;
+                        margin: 0 auto;
+                        background: white;
+                        border-radius: 10px;
+                        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+                        padding: 40px;
+                    }
+                    h1 {
+                        color: #667eea;
+                        margin-bottom: 10px;
+                        text-align: center;
+                    }
+                    .subtitle {
+                        text-align: center;
+                        color: #666;
+                        margin-bottom: 30px;
+                    }
+                    .input-group {
+                        margin-bottom: 20px;
+                    }
+                    label {
+                        display: block;
+                        margin-bottom: 8px;
+                        font-weight: bold;
+                        color: #333;
+                    }
+                    input[type="text"] {
+                        width: 100%;
+                        padding: 12px;
+                        border: 2px solid #ddd;
+                        border-radius: 5px;
+                        font-size: 16px;
+                        transition: border-color 0.3s;
+                    }
+                    input[type="text"]:focus {
+                        outline: none;
+                        border-color: #667eea;
+                    }
+                    .options {
+                        display: flex;
+                        gap: 10px;
+                        margin-bottom: 20px;
+                        flex-wrap: wrap;
+                    }
+                    .checkbox {
+                        display: flex;
+                        align-items: center;
+                        gap: 5px;
+                    }
+                    button {
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        color: white;
+                        border: none;
+                        padding: 12px 30px;
+                        font-size: 16px;
+                        border-radius: 5px;
+                        cursor: pointer;
+                        transition: transform 0.2s;
+                    }
+                    button:hover {
+                        transform: translateY(-2px);
+                    }
+                    button:active {
+                        transform: translateY(0);
+                    }
+                    .result {
+                        background: #f5f5f5;
+                        border-left: 4px solid #667eea;
+                        padding: 20px;
+                        border-radius: 5px;
+                        margin-top: 30px;
+                        max-height: 500px;
+                        overflow-y: auto;
+                    }
+                    .result pre {
+                        font-size: 13px;
+                        color: #333;
+                        white-space: pre-wrap;
+                        word-break: break-word;
+                    }
+                    .error {
+                        background: #fee;
+                        border-left-color: #f00;
+                        color: #c33;
+                    }
+                    .loading {
+                        text-align: center;
+                        color: #667eea;
+                    }
+                    .spinner {
+                        border: 4px solid #ddd;
+                        border-top: 4px solid #667eea;
+                        border-radius: 50%;
+                        width: 40px;
+                        height: 40px;
+                        animation: spin 1s linear infinite;
+                        margin: 20px auto;
+                    }
+                    @keyframes spin {
+                        0% { transform: rotate(0deg); }
+                        100% { transform: rotate(360deg); }
+                    }
+                    .info {
+                        background: #e8f4f8;
+                        border-left-color: #667eea;
+                        padding: 15px;
+                        border-radius: 5px;
+                        margin-top: 20px;
+                        font-size: 14px;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <h1>📱 Phone OSINT Pro</h1>
+                    <div class="subtitle">Análisis Avanzado de Números de Teléfono</div>
+                    
+                    <div class="input-group">
+                        <label for="phone">Número de Teléfono (E.164):</label>
+                        <input type="text" id="phone" placeholder="+5491155667788" value="">
+                    </div>
+                    
+                    <div class="options">
+                        <div class="checkbox">
+                            <input type="checkbox" id="mapCheck" checked>
+                            <label for="mapCheck">🗺️ Mapa</label>
+                        </div>
+                        <div class="checkbox">
+                            <input type="checkbox" id="emailCheck" checked>
+                            <label for="emailCheck">📧 Emails OSINT</label>
+                        </div>
+                        <div class="checkbox">
+                            <input type="checkbox" id="pdfCheck">
+                            <label for="pdfCheck">📄 PDF</label>
+                        </div>
+                    </div>
+                    
+                    <button onclick="analyzePhone()">🔍 Analizar</button>
+                    
+                    <div id="result"></div>
+                    
+                    <div class="info">
+                        💡 <strong>Consejo:</strong> Ingresa números en formato internacional (+país-área-número). 
+                        Ej: +1-202-555-0173 (USA), +34-91-555-1234 (España)
+                    </div>
+                </div>
+                
+                <script>
+                    function analyzePhone() {
+                        const phone = document.getElementById('phone').value.trim();
+                        if (!phone) {
+                            showResult('Por favor ingresa un número', true);
+                            return;
+                        }
+                        
+                        const resultDiv = document.getElementById('result');
+                        resultDiv.innerHTML = '<div class="loading"><div class="spinner"></div><p>Analizando...</p></div>';
+                        
+                        fetch('/api/analyze', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({
+                                phone: phone,
+                                map: document.getElementById('mapCheck').checked,
+                                email: document.getElementById('emailCheck').checked,
+                                pdf: document.getElementById('pdfCheck').checked
+                            })
+                        })
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.error) {
+                                showResult(data.error, true);
+                            } else {
+                                showResult(JSON.stringify(data, null, 2), false);
+                            }
+                        })
+                        .catch(err => showResult('Error: ' + err, true));
+                    }
+                    
+                    function showResult(text, isError) {
+                        const resultDiv = document.getElementById('result');
+                        resultDiv.className = 'result' + (isError ? ' error' : '');
+                        resultDiv.innerHTML = '<pre>' + text + '</pre>';
+                    }
+                    
+                    document.getElementById('phone').addEventListener('keypress', (e) => {
+                        if (e.key === 'Enter') analyzePhone();
+                    });
+                </script>
+            </body>
+            </html>
+            """
+            return html
+        
+        @app.route('/api/analyze', methods=['POST'])
+        def api_analyze():
+            """API REST para análisis"""
+            data = request.json
+            phone = data.get('phone', '')
+            
+            if not phone:
+                return {'error': 'Teléfono no proporcionado'}, 400
+            
+            try:
+                result = analyze_number(phone)
+                analytics.add_query(phone, result)
+                
+                # Agregar datos adicionales
+                if data.get('email') and result.get('valid'):
+                    result['emails_osint'] = search_emails_osint(phone, result.get('country', {}).get('value', ''))
+                
+                return result
+            except Exception as e:
+                return {'error': str(e)}, 400
+        
+        @app.route('/api/stats', methods=['GET'])
+        def api_stats():
+            """API para estadísticas"""
+            return {
+                'total_queries': len(analytics.history),
+                'countries': analytics.stats.get('countries', {}),
+                'carriers': analytics.stats.get('carriers', {})
+            }
+        
+        try:
+            app.run(host='localhost', port=8000, debug=False)
+        except KeyboardInterrupt:
+            print(Fore.CYAN + "\n✔ Servidor detenido")
+        except Exception as e:
+            print(Fore.RED + f"❌ Error al iniciar servidor: {e}")
+        return
 
     if args.stats:
         analytics.show_stats()
@@ -528,6 +1048,42 @@ def main():
 
             if args.html:
                 export_html(data)
+            
+            # ========== MEJORA 12: MAPA DE GEOLOCALIZACIÓN ==========
+            if args.map:
+                country = data.get("country", {}).get("value", "")
+                region = data.get("region", {}).get("value", "")
+                if country:
+                    map_path = os.path.join(output_dir, "mapa.html")
+                    print(Fore.CYAN + "\n🗺️ Generando mapa de geolocalización...")
+                    if generate_geolocation_map(country, region, map_path):
+                        print(Fore.GREEN + f"✔ Mapa generado: {map_path}")
+                    else:
+                        print(Fore.YELLOW + "⚠️ No se pudo generar el mapa")
+                else:
+                    print(Fore.YELLOW + "⚠️ No se pudo extraer información de país para el mapa")
+            
+            # ========== MEJORA 13: BÚSQUEDA DE EMAILS ==========
+            if args.email:
+                country = data.get("country", {}).get("value", "")
+                print(Fore.CYAN + "\n📧 Buscando emails asociados (OSINT)...")
+                email_results = search_emails_osint(numbers[0], country)
+                print(Fore.MAGENTA + f"  Dominios posibles: {', '.join(email_results.get('possible_domains', []))}")
+                
+                # Guardar emails en JSON
+                emails_path = os.path.join(output_dir, "emails_osint.json")
+                with open(emails_path, "w", encoding="utf-8") as f:
+                    json.dump(email_results, f, indent=4, ensure_ascii=False)
+                print(Fore.GREEN + f"✔ Datos de OSINT guardados: {emails_path}")
+            
+            # ========== MEJORA 14: GENERACIÓN DE PDF ==========
+            if args.pdf:
+                print(Fore.CYAN + "\n📄 Generando reporte PDF...")
+                pdf_path = os.path.join(output_dir, "reporte_profesional.pdf")
+                if generate_pdf_report(data, pdf_path):
+                    print(Fore.GREEN + f"✔ Reporte PDF generado: {pdf_path}")
+                else:
+                    print(Fore.YELLOW + "⚠️ No se pudo generar el PDF")
     else:
         # Análisis por lotes
         banner()
@@ -552,6 +1108,272 @@ def main():
             export_batch_csv(filtered_results, args.csv_output)
         elif args.csv:
             export_batch_csv(filtered_results)
+    
+    # ========== MEJORA 15: SERVIDOR WEB + API REST ==========
+    if args.web_server:
+        print(Fore.CYAN + "\n🚀 Iniciando API REST + Dashboard...")
+        print(Fore.CYAN + "📱 Abre: http://localhost:8000")
+        print(Fore.YELLOW + "⚠️ Presiona Ctrl+C para detener\n")
+        
+        # Crear una aplicación Flask simple
+        app = Flask(__name__)
+        
+        # Configurar CORS
+        try:
+            from flask_cors import CORS
+            CORS(app)
+        except:
+            pass
+        
+        @app.route('/')
+        def dashboard():
+            """Dashboard HTML"""
+            html = """
+            <!DOCTYPE html>
+            <html lang="es">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Phone OSINT Pro - Dashboard</title>
+                <style>
+                    * { margin: 0; padding: 0; box-sizing: border-box; }
+                    body { 
+                        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        min-height: 100vh;
+                        padding: 20px;
+                    }
+                    .container {
+                        max-width: 900px;
+                        margin: 0 auto;
+                        background: white;
+                        border-radius: 10px;
+                        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+                        padding: 40px;
+                    }
+                    h1 {
+                        color: #667eea;
+                        margin-bottom: 10px;
+                        text-align: center;
+                    }
+                    .subtitle {
+                        text-align: center;
+                        color: #666;
+                        margin-bottom: 30px;
+                    }
+                    .input-group {
+                        margin-bottom: 20px;
+                    }
+                    label {
+                        display: block;
+                        margin-bottom: 8px;
+                        font-weight: bold;
+                        color: #333;
+                    }
+                    input[type="text"] {
+                        width: 100%;
+                        padding: 12px;
+                        border: 2px solid #ddd;
+                        border-radius: 5px;
+                        font-size: 16px;
+                        transition: border-color 0.3s;
+                    }
+                    input[type="text"]:focus {
+                        outline: none;
+                        border-color: #667eea;
+                    }
+                    .options {
+                        display: flex;
+                        gap: 10px;
+                        margin-bottom: 20px;
+                        flex-wrap: wrap;
+                    }
+                    .checkbox {
+                        display: flex;
+                        align-items: center;
+                        gap: 5px;
+                    }
+                    button {
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        color: white;
+                        border: none;
+                        padding: 12px 30px;
+                        font-size: 16px;
+                        border-radius: 5px;
+                        cursor: pointer;
+                        transition: transform 0.2s;
+                    }
+                    button:hover {
+                        transform: translateY(-2px);
+                    }
+                    button:active {
+                        transform: translateY(0);
+                    }
+                    .result {
+                        background: #f5f5f5;
+                        border-left: 4px solid #667eea;
+                        padding: 20px;
+                        border-radius: 5px;
+                        margin-top: 30px;
+                        max-height: 500px;
+                        overflow-y: auto;
+                    }
+                    .result pre {
+                        font-size: 13px;
+                        color: #333;
+                        white-space: pre-wrap;
+                        word-break: break-word;
+                    }
+                    .error {
+                        background: #fee;
+                        border-left-color: #f00;
+                        color: #c33;
+                    }
+                    .loading {
+                        text-align: center;
+                        color: #667eea;
+                    }
+                    .spinner {
+                        border: 4px solid #ddd;
+                        border-top: 4px solid #667eea;
+                        border-radius: 50%;
+                        width: 40px;
+                        height: 40px;
+                        animation: spin 1s linear infinite;
+                        margin: 20px auto;
+                    }
+                    @keyframes spin {
+                        0% { transform: rotate(0deg); }
+                        100% { transform: rotate(360deg); }
+                    }
+                    .info {
+                        background: #e8f4f8;
+                        border-left-color: #667eea;
+                        padding: 15px;
+                        border-radius: 5px;
+                        margin-top: 20px;
+                        font-size: 14px;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <h1>📱 Phone OSINT Pro</h1>
+                    <div class="subtitle">Análisis Avanzado de Números de Teléfono</div>
+                    
+                    <div class="input-group">
+                        <label for="phone">Número de Teléfono (E.164):</label>
+                        <input type="text" id="phone" placeholder="+5491155667788" value="">
+                    </div>
+                    
+                    <div class="options">
+                        <div class="checkbox">
+                            <input type="checkbox" id="mapCheck" checked>
+                            <label for="mapCheck">🗺️ Mapa</label>
+                        </div>
+                        <div class="checkbox">
+                            <input type="checkbox" id="emailCheck" checked>
+                            <label for="emailCheck">📧 Emails OSINT</label>
+                        </div>
+                        <div class="checkbox">
+                            <input type="checkbox" id="pdfCheck">
+                            <label for="pdfCheck">📄 PDF</label>
+                        </div>
+                    </div>
+                    
+                    <button onclick="analyzePhone()">🔍 Analizar</button>
+                    
+                    <div id="result"></div>
+                    
+                    <div class="info">
+                        💡 <strong>Consejo:</strong> Ingresa números en formato internacional (+país-área-número). 
+                        Ej: +1-202-555-0173 (USA), +34-91-555-1234 (España)
+                    </div>
+                </div>
+                
+                <script>
+                    function analyzePhone() {
+                        const phone = document.getElementById('phone').value.trim();
+                        if (!phone) {
+                            showResult('Por favor ingresa un número', true);
+                            return;
+                        }
+                        
+                        const resultDiv = document.getElementById('result');
+                        resultDiv.innerHTML = '<div class="loading"><div class="spinner"></div><p>Analizando...</p></div>';
+                        
+                        fetch('/api/analyze', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({
+                                phone: phone,
+                                map: document.getElementById('mapCheck').checked,
+                                email: document.getElementById('emailCheck').checked,
+                                pdf: document.getElementById('pdfCheck').checked
+                            })
+                        })
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.error) {
+                                showResult(data.error, true);
+                            } else {
+                                showResult(JSON.stringify(data, null, 2), false);
+                            }
+                        })
+                        .catch(err => showResult('Error: ' + err, true));
+                    }
+                    
+                    function showResult(text, isError) {
+                        const resultDiv = document.getElementById('result');
+                        resultDiv.className = 'result' + (isError ? ' error' : '');
+                        resultDiv.innerHTML = '<pre>' + text + '</pre>';
+                    }
+                    
+                    document.getElementById('phone').addEventListener('keypress', (e) => {
+                        if (e.key === 'Enter') analyzePhone();
+                    });
+                </script>
+            </body>
+            </html>
+            """
+            return html
+        
+        @app.route('/api/analyze', methods=['POST'])
+        def api_analyze():
+            """API REST para análisis"""
+            data = request.json
+            phone = data.get('phone', '')
+            
+            if not phone:
+                return {'error': 'Teléfono no proporcionado'}, 400
+            
+            try:
+                result = analyze_number(phone)
+                analytics.add_query(phone, result)
+                
+                # Agregar datos adicionales
+                if data.get('email') and result.get('valid'):
+                    result['emails_osint'] = search_emails_osint(phone, result.get('country', {}).get('value', ''))
+                
+                return result
+            except Exception as e:
+                return {'error': str(e)}, 400
+        
+        @app.route('/api/stats', methods=['GET'])
+        def api_stats():
+            """API para estadísticas"""
+            return {
+                'total_queries': len(analytics.history),
+                'countries': analytics.stats.get('countries', {}),
+                'carriers': analytics.stats.get('carriers', {})
+            }
+        
+        try:
+            app.run(host='localhost', port=8000, debug=False)
+        except KeyboardInterrupt:
+            print(Fore.CYAN + "\n✔ Servidor detenido")
+        except Exception as e:
+            print(Fore.RED + f"❌ Error al iniciar servidor: {e}")
 
 if __name__ == "__main__":
     main()

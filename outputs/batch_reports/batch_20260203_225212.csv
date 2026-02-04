@@ -1,0 +1,3 @@
+original,normalized,valid,country,region,carrier,risk_level
++5491155667788,+5491155667788,True,Buenos Aires,Buenos Aires,Personal,BAJO
++542945556684,+542945556684,True,"Esquel, Chubut","Esquel, Chubut",NOT DETERMINABLE,BAJO
