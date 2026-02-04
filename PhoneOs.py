@@ -43,6 +43,13 @@ try:
 except ImportError:
     ADVANCED_FEATURES = False
 
+# Importar módulo de Intelligence OSINT
+try:
+    from PhoneOsIntelligence import intelligence
+    INTELLIGENCE_AVAILABLE = True
+except ImportError:
+    INTELLIGENCE_AVAILABLE = False
+
 from colorama import Fore, Style, init
 
 init(autoreset=True)
@@ -722,10 +729,76 @@ def main():
     parser.add_argument("--email", action="store_true", help="Buscar emails asociados (OSINT)")
     parser.add_argument("--pdf", action="store_true", help="Generar reporte PDF profesional")
     parser.add_argument("--web-server", action="store_true", help="Iniciar API REST + Dashboard")
+    
+    # ========== MÓDULOS DE INTELIGENCIA OSINT ==========
+    parser.add_argument("--intelligence", action="store_true", help="Investigación OSINT completa (TODO)")
+    parser.add_argument("--reverse-lookup", action="store_true", help="Búsqueda inversa: nombre, ubicación")
+    parser.add_argument("--find-emails", action="store_true", help="Buscar todos los emails asociados")
+    parser.add_argument("--social-media", action="store_true", help="Buscar en redes sociales")
+    parser.add_argument("--company-intel", action="store_true", help="Inteligencia de empresa")
+    parser.add_argument("--breach-check", action="store_true", help="Verificar en breaches y reputación")
 
     args = parser.parse_args()
     
-    # ========== MEJORA 15: SERVIDOR WEB + API REST (PRIMERO) ==========
+    # ========== MÓDULOS DE INTELIGENCIA OSINT (PRIMERO) ==========
+    if args.intelligence:
+        if not INTELLIGENCE_AVAILABLE:
+            print(Fore.RED + "❌ Módulo de Intelligence no disponible")
+            return
+        
+        if not args.number:
+            print(Fore.YELLOW + "⚠️  Debe proporcionar un número para la investigación")
+            return
+        
+        resultado = intelligence.investigar_completo(args.number)
+        
+        # Exportar a JSON
+        output_dir = os.path.join(OUTPUTS_DIR, args.number.replace("+", "").replace(" ", "_"))
+        os.makedirs(output_dir, exist_ok=True)
+        intelligence.exportar_json_inteligencia(resultado, os.path.join(output_dir, "inteligencia_completa.json"))
+        
+        print(Fore.GREEN + "\n✔ Investigación completada y guardada")
+        return
+    
+    # Comandos individuales de inteligencia
+    if args.reverse_lookup and args.number:
+        print(Fore.CYAN + "\n🔍 BÚSQUEDA INVERSA")
+        persona = intelligence.reverse_lookup.buscar_nombre_y_ubicacion(args.number)
+        print(json.dumps(persona, indent=2, ensure_ascii=False))
+        return
+    
+    if args.find_emails and args.number:
+        print(Fore.CYAN + "\n[BUSQUEDA DE EMAILS]")
+        resultado = intelligence.investigar_completo(args.number)
+        emails = resultado['emails']
+        print(f"\nEmails encontrados ({len(emails)}):")
+        for email in emails:
+            print(f"  * {email}")
+        return
+    
+    if args.social_media and args.number:
+        print(Fore.CYAN + "\n[BUSQUEDA EN REDES SOCIALES]")
+        resultado = intelligence.investigar_completo(args.number)
+        for perfil in resultado['redes_sociales']:
+            print(f"  * {perfil['plataforma']}: {perfil['username']}")
+        return
+    
+    if args.company_intel and args.number:
+        print(Fore.CYAN + "\n[INTELIGENCIA DE EMPRESA]")
+        resultado = intelligence.investigar_completo(args.number)
+        empresa = resultado.get('empresa', {})
+        print(json.dumps(empresa, indent=2, ensure_ascii=False))
+        return
+    
+    if args.breach_check and args.number:
+        print(Fore.CYAN + "\n[ANALISIS DE BREACHES]")
+        resultado = intelligence.investigar_completo(args.number)
+        breaches = resultado.get('breaches', {})
+        reputacion = resultado.get('reputacion', {})
+        print(json.dumps({'breaches': breaches, 'reputacion': reputacion}, indent=2, ensure_ascii=False))
+        return
+    
+    # ========== MEJORA 15: SERVIDOR WEB + API REST ==========
     if args.web_server:
         print(Fore.CYAN + "\n🚀 Iniciando API REST + Dashboard...")
         print(Fore.CYAN + "📱 Abre: http://localhost:8000")
